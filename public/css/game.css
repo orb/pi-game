@@ -1,0 +1,38 @@
+.digit {
+  display: inline-block;
+  min-width: 10px;
+  padding: 3px 7px;
+  margin: 0px 1px;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1;
+  color: #ffffff;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  /*background-color: #999999;*/
+  border-radius: 3px
+}
+
+@-webkit-keyframes pulse {
+from { background-color: #333333; -x-webkit-box-shadow: 0 0 9px #777; }
+50%  { background-color: #777777; -x-webkit-box-shadow: 0 0 18px #777;}
+to   { background-color: #333333; -x-webkit-box-shadow: 0 0 9px #777; }
+}
+
+.color-active {
+    background-color: #333333;
+    -webkit-animation-name: pulse;
+    -webkit-animation-duration: 2s;
+    -webkit-animation-iteration-count: infinite;
+}
+
+.color0 { background-color: #777777;}
+.color1 { background-color: #468847;}
+.color2 { background-color: #f89406;}
+.color3 { background-color: #b94a48;}
+.color4 { background-color: #3a87ad;}
+.color5 { background-color: #468847;}
+.color6 { background-color: #f89406;}
+.color7 { background-color: #b94a48;}
+.color8 { background-color: #3a87ad;}
