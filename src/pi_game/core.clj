@@ -7,6 +7,22 @@
             [ring.middleware.edn :as ring-edn]
             [pi-game.pi :as pi]))
 
+(def default-players ["Genevieve"
+                      "Herman"
+                      "Imogene"
+                      "Percival"
+                      "Thurston"])
+
+(def tmp-state
+  (atom {:current 3
+         :digits  [3 \. 1 4]
+         :colors  [0 0  0 0]
+         :players (map (fn [name color]
+                         {:name name :color color :score 1})
+                       default-players (rest (range)))}))
+
+
+
 (defn edn [data]
   {:body (pr-str data)
    :headers {"Content-Type" "application/edn;charset=UTF-8"}})
@@ -23,11 +39,19 @@
    (page/include-js "/pi-game/resources/js/bootstrap.min.js")
    (page/include-js "/pi-game/resources/js/app.js")
    (element/javascript-tag "pi_game.game.init();")))
-(def default-players ["Genevieve"
-                      "Herman"
-                      "Imogene"
-                      "Percival"
-                      "Thurston"])
+
+(defn select-random [options]
+  (seq (let [options-v (into [] options)]
+         (update-in options-v [(rand-int (count options-v))]
+                    #(do (println "!!" % (class %)) (conj % {:selected 1}))))))
+
+(defn player-select []
+  [:select#player-name.form-control {:style "width:200px;"}
+   (let [random-name (rand-nth default-players)]
+     (for [name default-players]
+       (if (= random-name name)
+         [:option {:selected 1} name]
+         [:option name])))])
 
 (defn game-app []
   (html
@@ -44,28 +68,15 @@
       [:li [:a "GAME?"]]]]
 
     [:form.navbar-form.pull-right
-     [:select#player-name.form-control
-      {:style "width:200px;"}
-      (map (fn [name] [:option name])
-           default-players)]]]
+     (player-select)]]
 
    [:div.container
     [:div.in-game.well.hidden
-     [:h2 "Searching for digit " [:span#current-digit "--"]]
+     [:h2 "Looking for digit #" [:span#current-digit "--"]]
 
      [:div#digits]
      [:div "&nbsp;"]
      [:div#scoreboard.progress]]]))
-
-
-
-(def tmp-state
-  (atom {:current 3
-         :digits  [3 \. 1 4]
-         :colors  [0 0  0 0]
-         :players (map (fn [name color]
-                         {:name name :color color :score 1})
-                       default-players (rest (range)))}))
 
 
 (defn game-state []
@@ -76,17 +87,20 @@
   (let [params (:params req)
         digit (:digit params)
         user (:user params)
-        color (:color (first (filter #(= user (:name %)) (:players @tmp-state))))
-
-        _ (println "!" user "!" color)
+        player-color (:color (first (filter #(= user (:name %)) (:players @tmp-state))))
 
         add-point-to
-        (fn [user player-state]
-          (into []
-                (for [player player-state]
-                  (if (= user (:name player))
-                    (update-in player [:score] inc)
-                    player))))]
+        (fn [user]
+          (fn [player-state]
+            (for [player player-state]
+              (if (= user (:name player))
+                (update-in player [:score] inc)
+                player))))
+
+        add-item
+        (fn [item]
+          (fn [items]
+            (conj items item)))]
 
     (swap! tmp-state
            (fn [state]
@@ -94,9 +108,9 @@
              (if (= digit (pi/nth-digit (:current state)))
                (-> state
                    (update-in [:current] inc)
-                   (update-in [:digits] #(conj % (:digit params)))
-                   (update-in [:colors] #(conj % color))
-                   (update-in [:players] (partial add-point-to user)))
+                   (update-in [:digits] (add-item (:digit params)))
+                   (update-in [:colors] (add-item player-color))
+                   (update-in [:players] (add-point-to user)))
 
                state))))
   (edn :ok))

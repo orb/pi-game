@@ -37,7 +37,8 @@
 
   (let [digits (map digit-box (:digits response) (:colors response))]
     (dommy/replace-contents! (sel1 :#digits) nil)
-    (reduce dommy/append! (sel1 :#digits) digits))
+    (reduce dommy/append! (sel1 :#digits) digits)
+    (dommy/append! (sel1 :#digits) (digit-box \_ 0 #_"X")))
 
   (let [total-points (reduce + (map :score  (:players response)))]
     (dommy/replace-contents! (sel1 :#scoreboard) nil)
@@ -47,7 +48,7 @@
 
 (defn update-state []
   (ajax/GET "/pi-game/state" {:handler update-game-state
-                              :error-handler oh-noes}) )
+                              :error-handler oh-noes}))
 
 (defn pressed [e]
   (let [code (.-keyCode e)]
@@ -59,11 +60,11 @@
         (ajax/POST "/pi-game/guess"
                    {:data data
                     :format :edn
-                    :handler (fn [& args] (update-state))
+                    :handler (fn [& args] (log digit "PRESSED"))
                     :error-handler oh-noes})))))
 
 (defn init []
   (.log js/console "Why, hello there!")
-  (js/setTimeout update-state 1)
+  (js/setInterval update-state 1000)
   (-> (sel1 :body)
       (dommy/listen! :keypress pressed)))

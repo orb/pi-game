@@ -14,16 +14,23 @@
   border-radius: 3px
 }
 
+
 @-webkit-keyframes pulse {
-from { background-color: #333333; -x-webkit-box-shadow: 0 0 9px #777; }
-50%  { background-color: #777777; -x-webkit-box-shadow: 0 0 18px #777;}
-to   { background-color: #333333; -x-webkit-box-shadow: 0 0 9px #777; }
+from { background-color: #777; -webkit-box-shadow: 0 0 9px #555; }
+50%  { background-color: #333; -webkit-box-shadow: 0 0 18px #FFF;}
+to   { background-color: #777; -webkit-box-shadow: 0 0 9px #555; }
 }
 
-.color-active {
-    background-color: #333333;
+@-webkit-keyframes shadowpulse {
+from {-webkit-box-shadow: 0 0 9px #000; }
+50%  {-webkit-box-shadow: 0 0 28px #FFF;}
+to   {-webkit-box-shadow: 0 0 9px #000; }
+}
+
+.colorX {
+    background-color: #555;
     -webkit-animation-name: pulse;
-    -webkit-animation-duration: 2s;
+    -webkit-animation-duration: 4s;
     -webkit-animation-iteration-count: infinite;
 }
 
