@@ -21,7 +21,8 @@
   (str "width: " (int percent) "%;"))
 
 (defn player-bar [player total-points]
-  (let [percent (* 100 (/ (:score player) total-points))]
+  (log (pr-str player) "PLAYER")
+  (let [percent (* 100.0 (/ (:score player) total-points))]
     (-> (node [:div.progress-bar.progress-bar-success {:style (width-spec percent)}
                (str (:name player) " - " (:score player))])
         (make-color (:color player)))))
@@ -35,10 +36,11 @@
       (dommy/set-text! (:current response)))
 
   (let [digits (map digit-box (:digits response) (:colors response))]
-    (dommy/replace-contents! (sel1 :#digits) (node [:span.ignore-me]))
+    (dommy/replace-contents! (sel1 :#digits) nil)
     (reduce dommy/append! (sel1 :#digits) digits))
 
   (let [total-points (reduce + (map :score  (:players response)))]
+    (dommy/replace-contents! (sel1 :#scoreboard) nil)
     (doseq [player (:players response)]
       (dommy/append! (sel1 :#scoreboard)
                      (player-bar player total-points)))))
@@ -50,9 +52,10 @@
 (defn pressed [e]
   (let [code (.-keyCode e)]
     (when (<= 48 code 57)
-      (let [data {:digit (- code 48)
-                  :user "Test"
-                  :position 11}]
+      (let [sel-elem (sel1 :#player-name)
+            data {:digit (- code 48)
+                  :user (dommy/text (aget (.-options sel-elem) (.-selectedIndex sel-elem)))
+                  :position (js/parseInt (dommy/text (sel1 :#current-digit)))}]
         (ajax/POST "/pi-game/guess"
                    {:data data
                     :format :edn

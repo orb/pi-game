@@ -17,21 +17,42 @@
     [:title "PI Game"]
     (page/include-css "/pi-game/resources/css/bootstrap.min.css")
     (page/include-css "/pi-game/resources/css/game.css")
-    (page/include-css "http://fonts.googleapis.com/css?family=Press+Start+2P&subset=latin")]
+    (page/include-css "http://fonts.googleapis.com/css?family=Press+Start+2P&subset=latin,greek")]
    [:body body]
    (page/include-js "/pi-game/resources/js/jquery-1.10.2.min.js")
    (page/include-js "/pi-game/resources/js/bootstrap.min.js")
    (page/include-js "/pi-game/resources/js/app.js")
    (element/javascript-tag "pi_game.game.init();")))
+(def default-players ["Genevieve"
+                      "Herman"
+                      "Imogene"
+                      "Percival"
+                      "Thurston"])
 
 (defn game-app []
   (html
-   [:div.container
-    [:div.navbar {:style "font-family: 'Press Start 2P', cursive;"}
-     [:p.navbar-text "SHALL WE PLAY A GAME?"]]
+   [:div.navbar
+    [:span
+     {:style "font-family: 'Press Start 2P', cursive;"}
 
+     [:div.navbar-brand "\u03C0"]
+     [:ul.nav.navbar-nav
+      [:li [:a "SHALL"]]
+      [:li [:a "WE"]]
+      [:li [:a "PLAY"]]
+      [:li [:a "A"]]
+      [:li [:a "GAME?"]]]]
+
+    [:form.navbar-form.pull-right
+     [:select#player-name.form-control
+      {:style "width:200px;"}
+      (map (fn [name] [:option name])
+           default-players)]]]
+
+   [:div.container
     [:div.in-game.well.hidden
      [:h2 "Searching for digit " [:span#current-digit "--"]]
+
      [:div#digits]
      [:div "&nbsp;"]
      [:div#scoreboard.progress]]]))
@@ -40,14 +61,11 @@
 
 (def tmp-state
   (atom {:current 3
-         :digits
-         [3 \. 1 4]
-         :colors
-         [0 0  1 1]
-
-         :players [{:name "Bob"  :color 1 :score 7}
-                   {:name "Sam"  :color 2 :score 15}
-                   {:name "Anna" :color 3 :score 12}]}))
+         :digits  [3 \. 1 4]
+         :colors  [0 0  0 0]
+         :players (map (fn [name color]
+                         {:name name :color color :score 1})
+                       default-players (rest (range)))}))
 
 
 (defn game-state []
@@ -56,7 +74,20 @@
 
 (defn user-guess [req]
   (let [params (:params req)
-        digit (:digit params)]
+        digit (:digit params)
+        user (:user params)
+        color (:color (first (filter #(= user (:name %)) (:players @tmp-state))))
+
+        _ (println "!" user "!" color)
+
+        add-point-to
+        (fn [user player-state]
+          (into []
+                (for [player player-state]
+                  (if (= user (:name player))
+                    (update-in player [:score] inc)
+                    player))))]
+
     (swap! tmp-state
            (fn [state]
              (println "GOT" digit "expecting" (pi/nth-digit (:current state)))
@@ -64,9 +95,10 @@
                (-> state
                    (update-in [:current] inc)
                    (update-in [:digits] #(conj % (:digit params)))
-                   (update-in [:colors] #(conj % 3)))
+                   (update-in [:colors] #(conj % color))
+                   (update-in [:players] (partial add-point-to user)))
+
                state))))
-  #_(println "!" @tmp-state)
   (edn :ok))
 
 (defroutes app-routes
