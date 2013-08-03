@@ -1,18 +1,36 @@
 (ns immutant.init
   (:require [pi-game.core :as pi-game]
-            [immutant.messaging :as messaging]
+            [immutant.messaging :as msg]
             [immutant.repl :as repl]
             [immutant.web :as web]
-            [immutant.util :as util]))
+            [immutant.util :as util]
+            [immutant.daemons :as daemon]))
 
 ;;(defonce nrepl (repl/start-nrepl 4242))
 (web/start "/" pi-game/app)
 
+(msg/start "/queue/guesses")
 
+(defonce listener (atom nil))
+(defn start-listener []
+  (println "!START!")
+  (swap! listener
+         (fn [listener]
+           (println "! starting listener - was " listener)
+           (msg/listen "/queue/guesses" pi-game/handle-guess))))
 
-;; Messaging allows for starting (and stopping) destinations (queues & topics)
-;; and listening for messages on a destination.
+(defn stop-listener []
+  (println "!STOP!")
+  (swap! listener
+         (fn [listener]
+           (println "! stopping listener - was " listener)
+           (when listener
+             (msg/unlisten listener))
+           nil)))
 
-; (messaging/start "/queue/a-queue")
-; (messaging/listen "/queue/a-queue" #(println "received: " %))
+(daemon/daemonize "guess-listener"
+                  start-listener
+                  stop-listener
+                  :singleton true)
+
 

@@ -1,10 +1,13 @@
 (ns pi-game.core
   (:use [compojure.core])
-  (:require [hiccup.core :as h]
+
+  (:require [compojure.route]
+            [hiccup.core :as h]
             [hiccup.page :as page]
             [hiccup.element :as element]
-            [compojure.route]
+            [immutant.messaging :as msg]
             [ring.middleware.edn :as ring-edn]
+
             [pi-game.pi :as pi]))
 
 (def default-players ["Genevieve"
@@ -80,39 +83,10 @@
 
 
 (defn game-state []
-  (println "GET /state")
   (edn @tmp-state))
 
 (defn user-guess [req]
-  (let [params (:params req)
-        digit (:digit params)
-        user (:user params)
-        player-color (:color (first (filter #(= user (:name %)) (:players @tmp-state))))
-
-        add-point-to
-        (fn [user]
-          (fn [player-state]
-            (for [player player-state]
-              (if (= user (:name player))
-                (update-in player [:score] inc)
-                player))))
-
-        add-item
-        (fn [item]
-          (fn [items]
-            (conj items item)))]
-
-    (swap! tmp-state
-           (fn [state]
-             (println "GOT" digit "expecting" (pi/nth-digit (:current state)))
-             (if (= digit (pi/nth-digit (:current state)))
-               (-> state
-                   (update-in [:current] inc)
-                   (update-in [:digits] (add-item (:digit params)))
-                   (update-in [:colors] (add-item player-color))
-                   (update-in [:players] (add-point-to user)))
-
-               state))))
+  (msg/publish "/queue/guesses" (:params req))
   (edn :ok))
 
 (defroutes app-routes
@@ -124,3 +98,36 @@
 (def app
   (-> app-routes
       ring-edn/wrap-edn-params))
+
+(defn process-guess [guess]
+   (let [digit (:digit guess)
+         user (:user guess)
+         player-color (:color (first (filter #(= user (:name %)) (:players @tmp-state))))
+
+         add-point-to
+         (fn [user]
+           (fn [player-state]
+             (for [player player-state]
+               (if (= user (:name player))
+                 (update-in player [:score] inc)
+                 player))))
+
+         add-item
+         (fn [item]
+           (fn [items]
+             (conj items item)))]
+
+     (swap! tmp-state
+            (fn [state]
+              (println "GOT" digit "expecting" (pi/nth-digit (:current state)))
+              (if (= digit (pi/nth-digit (:current state)))
+                (-> state
+                    (update-in [:current] inc)
+                    (update-in [:digits] (add-item digit))
+                    (update-in [:colors] (add-item player-color))
+                    (update-in [:players] (add-point-to user)))
+
+                state)))))
+(defn handle-guess [message]
+  (process-guess message))
+

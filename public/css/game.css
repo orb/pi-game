@@ -34,7 +34,7 @@ to   {-webkit-box-shadow: 0 0 9px #000; }
     -webkit-animation-iteration-count: infinite;
 }
 
-.color0 { background-color: #777777;}
+/*.color0 { background-color: #777777;}
 .color1 { background-color: #468847;}
 .color2 { background-color: #f89406;}
 .color3 { background-color: #b94a48;}
@@ -43,3 +43,26 @@ to   {-webkit-box-shadow: 0 0 9px #000; }
 .color6 { background-color: #f89406;}
 .color7 { background-color: #b94a48;}
 .color8 { background-color: #3a87ad;}
+*/
+
+
+.color0  {background-color: #777777;}
+.color1  {background-color: #37aedb;}
+.color2  {background-color: #3ebf84;}
+.color3  {background-color: #e7389a;}
+.color4  {background-color: #f39e3d;}
+.color5  {background-color: #4d4295;}
+.color6  {background-color: #2cd182;}
+.color7  {background-color: #6c2cd1;}
+.color8  {background-color: #f8e234;}
+.color9  {background-color: #f89434;}
+.color10 {background-color: #2c8fd1;}
+.color11 {background-color: #d12cca;}
+.color12 {background-color: #deef32;}
+
+
+
+
+
+
+
