@@ -3,9 +3,9 @@
             [dommy.core :as dommy])
   (:use-macros [dommy.macros :only [sel sel1 node deftemplate]]))
 
-(defn log [e msg]
-  (.log js/console msg e)
-  e)
+(defn log [arg & args]
+  (.log js/console arg args)
+  (first args))
 
 (defn oh-noes [response]
   (.log js/console "something bad happened: " (:status response) " " (:status-text response)))
@@ -21,14 +21,17 @@
   (str "width: " (int percent) "%;"))
 
 (defn player-bar [player total-points]
-  (log (pr-str player) "PLAYER")
-  (let [percent (* 100.0 (/ (:score player) total-points))]
-    (-> (node [:div.progress-bar.progress-bar-success {:style (width-spec percent)}
-               (str (:name player) " - " (:score player))])
-        (make-color (:color player)))))
+  (let [percent (* 100 (/ (:score player) total-points))
+        player-color (:color player)]
+    (node [:div (-> (node [:div.col-2 (:name player) [:span.badge.pull-right (:score player)]])
+                    identity
+                    #_(make-color player-color))
+           [:div.progress
+            (-> (node [:div.progress-bar.progress-bar-success {:style (width-spec percent)}])
+                (make-color player-color))]])))
 
 (defn update-game-state [response]
-  (log (str response) "results")
+  #_(log (str response) "results")
   (-> (sel1 :.in-game)
       (dommy/remove-class! :hidden))
 
@@ -40,7 +43,7 @@
     (reduce dommy/append! (sel1 :#digits) digits)
     (dommy/append! (sel1 :#digits) (digit-box \_ 0 #_"X")))
 
-  (let [total-points (reduce + (map :score  (:players response)))]
+  (let [total-points (reduce max 1 (map :score  (:players response)))]
     (dommy/replace-contents! (sel1 :#scoreboard) nil)
     (doseq [player (:players response)]
       (dommy/append! (sel1 :#scoreboard)
@@ -52,16 +55,20 @@
 
 (defn pressed [e]
   (let [code (.-keyCode e)]
-    (when (<= 48 code 57)
-      (let [sel-elem (sel1 :#player-name)
+    (cond
+     (<= 48 code 57)
+     (let [sel-elem (sel1 :#player-name)
             data {:digit (- code 48)
                   :user (dommy/text (aget (.-options sel-elem) (.-selectedIndex sel-elem)))
                   :position (js/parseInt (dommy/text (sel1 :#current-digit)))}]
-        (ajax/POST "/pi-game/guess"
-                   {:data data
-                    :format :edn
-                    :handler (fn [& args] (log digit "PRESSED"))
-                    :error-handler oh-noes})))))
+       (ajax/POST "/pi-game/guess"
+                  {:data data
+                   :format :edn
+                   :handler (fn [& args] (log (- code 48) "PRESSED"))
+                   :error-handler oh-noes}))
+
+     (== code 126)
+     (ajax/POST "/pi-game/reset"))))
 
 (defn init []
   (.log js/console "Why, hello there!")

@@ -51,27 +51,32 @@
 
     [:form.navbar-form.pull-right (player-select)]]
 
-   [:div.container
-    [:div.in-game.well.hidden
-     [:h2 "Looking for digit #" [:span#current-digit "--"]]
+   [:div.container.in-game.hidden
+    [:h2 "Looking for digit #" [:span#current-digit "--"]]
+    [:div#digits.well]
 
-     [:div#digits]
-     [:div "&nbsp;"]
-     [:div#scoreboard.progress]]]))
+    [:h2 "Scoreboard"]
+    [:div#scoreboard.well]]))
 
 
 (defn game-state []
   (edn (play/current-state)))
 
 (defn user-guess [req]
-  (println "! keypress from"  (:user (:params req)))
-  (msg/publish "/queue/guesses" (:params req))
+  (let [params (:params req)]
+    (println "! keypress from"  (:user params))
+    (msg/publish "/queue/guesses" params)
+    (edn :ok)))
+
+(defn reset-game []
+  (msg/publish "/queue/guesses" {:reset true})
   (edn :ok))
 
 (defroutes app-routes
   (GET "/" [] (game-app))
   (GET "/state" [] (game-state))
   (POST "/guess" [] user-guess)
+  (POST "/reset" [] (reset-game))
   (compojure.route/files "/resources"))
 
 (def app
