@@ -20,4 +20,14 @@
                                    :optimizations :whitespace
                                    :pretty-print true}}]}
 
-  :immutant {:nrepl-port 4242})
+  :immutant {:nrepl-port 0}
+
+  :aliases {"node1"
+            ["immutant" "run" "--clustered"
+             "-Djboss.node.name=node1"
+             "-Djboss.server.data.dir=/tmp/node1"]
+            "node2"
+            ["immutant" "run" "--clustered"
+             "-Djboss.node.name=node2"
+             "-Djboss.server.data.dir=/tmp/two"
+             "-Djboss.socket.binding.port-offset=100"]})

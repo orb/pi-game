@@ -1,30 +1,13 @@
 (ns pi-game.core
   (:use [compojure.core])
-
   (:require [compojure.route]
             [hiccup.core :as h]
             [hiccup.page :as page]
             [hiccup.element :as element]
             [immutant.messaging :as msg]
             [ring.middleware.edn :as ring-edn]
-
-            [pi-game.pi :as pi]))
-
-(def default-players ["Genevieve"
-                      "Herman"
-                      "Imogene"
-                      "Percival"
-                      "Thurston"])
-
-(def tmp-state
-  (atom {:current 3
-         :digits  [3 \. 1 4]
-         :colors  [0 0  0 0]
-         :players (map (fn [name color]
-                         {:name name :color color :score 1})
-                       default-players (rest (range)))}))
-
-
+            [pi-game.pi :as pi]
+            [pi-game.play :as play]))
 
 (defn edn [data]
   {:body (pr-str data)
@@ -43,15 +26,11 @@
    (page/include-js "/pi-game/resources/js/app.js")
    (element/javascript-tag "pi_game.game.init();")))
 
-(defn select-random [options]
-  (seq (let [options-v (into [] options)]
-         (update-in options-v [(rand-int (count options-v))]
-                    #(do (println "!!" % (class %)) (conj % {:selected 1}))))))
-
 (defn player-select []
   [:select#player-name.form-control {:style "width:200px;"}
-   (let [random-name (rand-nth default-players)]
-     (for [name default-players]
+   (let [players (map :name (:players (play/current-state)))
+         random-name (rand-nth players)]
+     (for [name players]
        (if (= random-name name)
          [:option {:selected 1} name]
          [:option name])))])
@@ -70,8 +49,7 @@
       [:li [:a "A"]]
       [:li [:a "GAME?"]]]]
 
-    [:form.navbar-form.pull-right
-     (player-select)]]
+    [:form.navbar-form.pull-right (player-select)]]
 
    [:div.container
     [:div.in-game.well.hidden
@@ -83,9 +61,10 @@
 
 
 (defn game-state []
-  (edn @tmp-state))
+  (edn (play/current-state)))
 
 (defn user-guess [req]
+  (println "! keypress from"  (:user (:params req)))
   (msg/publish "/queue/guesses" (:params req))
   (edn :ok))
 
@@ -99,35 +78,5 @@
   (-> app-routes
       ring-edn/wrap-edn-params))
 
-(defn process-guess [guess]
-   (let [digit (:digit guess)
-         user (:user guess)
-         player-color (:color (first (filter #(= user (:name %)) (:players @tmp-state))))
 
-         add-point-to
-         (fn [user]
-           (fn [player-state]
-             (for [player player-state]
-               (if (= user (:name player))
-                 (update-in player [:score] inc)
-                 player))))
-
-         add-item
-         (fn [item]
-           (fn [items]
-             (conj items item)))]
-
-     (swap! tmp-state
-            (fn [state]
-              (println "GOT" digit "expecting" (pi/nth-digit (:current state)))
-              (if (= digit (pi/nth-digit (:current state)))
-                (-> state
-                    (update-in [:current] inc)
-                    (update-in [:digits] (add-item digit))
-                    (update-in [:colors] (add-item player-color))
-                    (update-in [:players] (add-point-to user)))
-
-                state)))))
-(defn handle-guess [message]
-  (process-guess message))
 
