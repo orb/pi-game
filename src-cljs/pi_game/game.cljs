@@ -50,7 +50,7 @@
                      (player-bar player total-points)))))
 
 (defn update-state []
-  (ajax/GET "/pi-game/state" {:handler update-game-state
+  (ajax/GET "/state" {:handler update-game-state
                               :error-handler oh-noes}))
 
 (defn pressed [e]
@@ -61,14 +61,14 @@
             data {:digit (- code 48)
                   :user (dommy/text (aget (.-options sel-elem) (.-selectedIndex sel-elem)))
                   :position (js/parseInt (dommy/text (sel1 :#current-digit)))}]
-       (ajax/POST "/pi-game/guess"
+       (ajax/POST "/guess"
                   {:data data
                    :format :edn
                    :handler (fn [& args] (log (- code 48) "PRESSED"))
                    :error-handler oh-noes}))
 
      (== code 126)
-     (ajax/POST "/pi-game/reset"))))
+     (ajax/POST "/reset"))))
 
 (defn init []
   (.log js/console "Why, hello there!")

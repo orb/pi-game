@@ -6,28 +6,22 @@
                  [compojure "1.1.5"]
                  [hiccup "1.0.4"]
                  [ring-edn "0.1.0"]
+                 [org.clojure/core.async "0.1.222.0-83d0c2-alpha"]
+                 [org.clojure/clojurescript "0.0-1913"]
 
                  ;; for clojurescript
                  [cljs-ajax "0.1.6"]
                  [prismatic/dommy "0.1.1"]]
 
-  :plugins [[lein-cljsbuild "0.3.2"]
-            [lein-immutant "1.0.0"]]
+  :plugins [[lein-cljsbuild "0.3.3"]
+            [lein-ring "0.8.7"]]
+
+  :ring {:handler pi-game.core/app
+         :init    pi-game.startup/on-start
+         :nrepl {:start? true}}
 
   :hooks [leiningen.cljsbuild]
   :cljsbuild {:builds [{:source-paths ["src-cljs"]
                         :compiler {:output-to "public/js/app.js"
                                    :optimizations :whitespace
-                                   :pretty-print true}}]}
-
-  :immutant {:nrepl-port 0}
-
-  :aliases {"node1"
-            ["immutant" "run" "--clustered"
-             "-Djboss.node.name=node1"
-             "-Djboss.server.data.dir=/tmp/node1"]
-            "node2"
-            ["immutant" "run" "--clustered"
-             "-Djboss.node.name=node2"
-             "-Djboss.server.data.dir=/tmp/two"
-             "-Djboss.socket.binding.port-offset=100"]})
+                                   :pretty-print true}}]})

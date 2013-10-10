@@ -4,10 +4,10 @@
             [hiccup.core :as h]
             [hiccup.page :as page]
             [hiccup.element :as element]
-            [immutant.messaging :as msg]
             [ring.middleware.edn :as ring-edn]
             [pi-game.pi :as pi]
-            [pi-game.play :as play]))
+            [pi-game.play :as play]
+            [pi-game.startup :as startup]))
 
 (defn edn [data]
   {:body (pr-str data)
@@ -17,13 +17,13 @@
   (page/html5 {:lang "en"}
    [:head
     [:title "PI Game"]
-    (page/include-css "/pi-game/resources/css/bootstrap.min.css")
-    (page/include-css "/pi-game/resources/css/game.css")
+    (page/include-css "/resources/css/bootstrap.min.css")
+    (page/include-css "/resources/css/game.css")
     (page/include-css "http://fonts.googleapis.com/css?family=Press+Start+2P&subset=latin,greek")]
    [:body body]
-   (page/include-js "/pi-game/resources/js/jquery-1.10.2.min.js")
-   (page/include-js "/pi-game/resources/js/bootstrap.min.js")
-   (page/include-js "/pi-game/resources/js/app.js")
+   (page/include-js "/resources/js/jquery-1.10.2.min.js")
+   (page/include-js "/resources/js/bootstrap.min.js")
+   (page/include-js "/resources/js/app.js")
    (element/javascript-tag "pi_game.game.init();")))
 
 (defn player-select []
@@ -65,11 +65,11 @@
 (defn user-guess [req]
   (let [params (:params req)]
     (println "! keypress from"  (:user params))
-    (msg/publish "/queue/guesses" params)
+    (startup/publish params)
     (edn :ok)))
 
 (defn reset-game []
-  (msg/publish "/queue/guesses" {:reset true})
+  (startup/publish {:reset true})
   (edn :ok))
 
 (defroutes app-routes
