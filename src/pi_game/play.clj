@@ -55,11 +55,10 @@
         user (:user guess)
         player-color (:color (first (filter #(= user (:name %)) (:players state))))]
 
-    (println "GOT" digit "expecting" (pi/nth-digit (:current state)))
     (if (= digit (pi/nth-digit (:current state)))
       (cache-put game-cache
                  :game-state
-                 (user-correct-guess state digit users player-color))
+                 (user-correct-guess state digit user player-color))
       state)))
 
 (defn handle-guess [guess]

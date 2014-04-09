@@ -6,21 +6,23 @@
                  [compojure "1.1.5"]
                  [hiccup "1.0.4"]
                  [ring-edn "0.1.0"]
-                 [org.clojure/core.async "0.1.222.0-83d0c2-alpha"]
-                 [org.clojure/clojurescript "0.0-1913"]
+
+                 [org.clojure/core.async "0.1.278.0-76b25b-alpha"]
+                 [org.clojure/clojurescript "0.0-2202"]
 
                  ;; for clojurescript
                  [cljs-ajax "0.1.6"]
                  [prismatic/dommy "0.1.1"]]
 
-  :plugins [[lein-cljsbuild "0.3.3"]
+  :plugins [[lein-cljsbuild "1.0.3"]
             [lein-ring "0.8.7"]]
 
   :ring {:handler pi-game.core/app
          :init    pi-game.startup/on-start
          :nrepl {:start? true}}
 
-  :hooks [leiningen.cljsbuild]
+  :xhooks [leiningen.cljsbuild] ;; cljsbuild hook considered harmful
+
   :cljsbuild {:builds [{:source-paths ["src-cljs"]
                         :compiler {:output-to "public/js/app.js"
                                    :optimizations :whitespace
