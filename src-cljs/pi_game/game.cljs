@@ -1,57 +1,13 @@
 (ns pi-game.game
+  (:require-macros [cljs.core.async.macros :refer [go]]
+                   [dommy.macros :refer [sel sel1 node deftemplate]])
   (:require [ajax.core :as ajax]
-            [dommy.core :as dommy])
-  (:use-macros [dommy.macros :only [sel sel1 node deftemplate]]))
+            [dommy.core :as dommy]
+            [om.core :as om :include-macros true]
+            [om.dom :as dom :include-macros true]
+            [cljs.core.async :refer [<! chan put! sliding-buffer]]))
 
-(defn log [arg & args]
-  (.log js/console arg args)
-  (first args))
-
-(defn oh-noes [response]
-  (.log js/console "something bad happened: " (:status response) " " (:status-text response)))
-
-(defn make-color [elem color-num]
-  (dommy/add-class! elem (str "color" color-num)))
-
-(defn digit-box [digit color]
-  (-> (node [:span.digit digit])
-      (make-color color)))
-
-(defn width-spec [percent]
-  (str "width: " (int percent) "%;"))
-
-(defn player-bar [player total-points]
-  (let [percent (* 100 (/ (:score player) total-points))
-        player-color (:color player)]
-    (node [:div (-> (node [:div.col-2 (:name player) [:span.badge.pull-right (:score player)]])
-                    identity
-                    #_(make-color player-color))
-           [:div.progress
-            (-> (node [:div.progress-bar.progress-bar-success {:style (width-spec percent)}])
-                (make-color player-color))]])))
-
-(defn update-game-state [response]
-  #_(log (str response) "results")
-  (-> (sel1 :.in-game)
-      (dommy/remove-class! :hidden))
-
-  (-> (sel1 :#current-digit)
-      (dommy/set-text! (:current response)))
-
-  (let [digits (map digit-box (:digits response) (:colors response))]
-    (dommy/replace-contents! (sel1 :#digits) nil)
-    (reduce dommy/append! (sel1 :#digits) digits)
-    (dommy/append! (sel1 :#digits) (digit-box \_ 0 #_"X")))
-
-  (let [total-points (reduce max 1 (map :score  (:players response)))]
-    (dommy/replace-contents! (sel1 :#scoreboard) nil)
-    (doseq [player (:players response)]
-      (dommy/append! (sel1 :#scoreboard)
-                     (player-bar player total-points)))))
-
-(defn update-state []
-  (ajax/GET "/state" {:handler update-game-state
-                              :error-handler oh-noes}))
+(enable-console-print!)
 
 (defn pressed [e]
   (let [code (.-keyCode e)]
@@ -64,14 +20,89 @@
        (ajax/POST "/guess"
                   {:data data
                    :format :edn
-                   :handler (fn [& args] (log (- code 48) "PRESSED"))
-                   :error-handler oh-noes}))
+                   :handler (fn [& args] (println (- code 48) "PRESSED"))
+                   ;; :error-handler oh-noes
+                   }))
 
      (== code 126)
      (ajax/POST "/reset"))))
 
+;; ----------------------------------------
+
+(defonce game-state (atom {:playing false}))
+
+(defn oh-noes [response]
+  (.log js/console "something bad happened: " (:status response) " " (:status-text response)))
+
+(defn scorebar-view [player owner]
+  (reify om/IRenderState
+    (render-state [_ state]
+      (let [total-points (om/get-shared owner :total-points)
+            percent (* 100 (/ (:score player) total-points))
+            player-color (:color player)]
+        (dom/div nil
+                 (dom/div #js {:className "div col-2"}
+                          (:name player)
+                          (dom/div #js {:className "span badge pull-right"}
+                                   (:score player)))
+                 (dom/div #js {:className "progress"}
+                          (dom/div #js {:className (str "progress-bar progress-bar-succes color" player-color)
+                                        :style #js {:width (str percent "%")}})))))))
+
+(defn scoreboard-view [players owner]
+  (reify
+    om/IRender
+    (render [_]
+      (dom/div nil
+               (dom/h2 nil "Scoreboard")
+               (let [total-points (reduce max 1 (map :score players))]
+                 (apply dom/div #js {:className "scoreboard well"}
+                        (om/build-all scorebar-view players {:shared {:total-points total-points}})))))))
+
+
+
+(defn game-view [app owner]
+  (reify
+    om/IWillMount
+    (will-mount [_]
+      (let [handle-response
+            (fn [resp]
+              (om/set-state! owner :in-game true)
+              (om/transact! app :game-state (constantly resp)))
+
+            ping-server
+            (fn []
+              (ajax/GET "/state" {:handler handle-response :error-handler oh-noes}))]
+        (let [timer-id (js/setInterval ping-server 1000)]
+          (om/set-state! owner :timer-id timer-id))))
+
+    om/IWillUnmount
+    (will-unmount [_]
+      (let [timer-id (om/get-state owner :timer-id)]
+        (when timer-id
+          (js/clearInterval timer-id))))
+
+    om/IRenderState
+    (render-state [_ {:keys [in-game]}]
+      (if in-game
+        (dom/div #js {:className "container"}
+                 (dom/h2 nil
+                         "Looking for digit #"
+                         (dom/span #js {:className "current-digit"}
+                                   (get-in app [:game-state :current])))
+                 (apply dom/div #js {:className "digits well"}
+                        (mapv #(dom/span #js {:className (str "digit color" %2)} %1)
+                              (conj (get-in app [:game-state :digits]) \_)
+                              (conj (get-in app [:game-state :colors]) 0)))
+                 (om/build scoreboard-view (get-in app [:game-state :players])))
+
+        (dom/h2 nil "Waiting...")))))
+
 (defn init []
   (.log js/console "Why, hello there!")
-  (js/setInterval update-state 1000)
+  (om/root game-view game-state
+           {:target  (.getElementById js/document "game")
+            :init-state {:monkey "balls"}})
+
   (-> (sel1 :body)
       (dommy/listen! :keypress pressed)))

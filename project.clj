@@ -11,6 +11,7 @@
                  [org.clojure/clojurescript "0.0-2202"]
 
                  ;; for clojurescript
+                 [om "0.5.3"]
                  [cljs-ajax "0.1.6"]
                  [prismatic/dommy "0.1.1"]]
 

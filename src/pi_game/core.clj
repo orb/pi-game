@@ -20,7 +20,9 @@
     (page/include-css "/resources/css/bootstrap.min.css")
     (page/include-css "/resources/css/game.css")
     (page/include-css "http://fonts.googleapis.com/css?family=Press+Start+2P&subset=latin,greek")]
+
    [:body body]
+   (page/include-js "http://fb.me/react-0.9.0.js")
    (page/include-js "/resources/js/jquery-1.10.2.min.js")
    (page/include-js "/resources/js/bootstrap.min.js")
    (page/include-js "/resources/js/app.js")
@@ -37,6 +39,7 @@
 
 (defn game-app []
   (html
+
    [:div.navbar
     [:span
      {:style "font-family: 'Press Start 2P', cursive;"}
@@ -51,12 +54,7 @@
 
     [:form.navbar-form.pull-right (player-select)]]
 
-   [:div.container.in-game.hidden
-    [:h2 "Looking for digit #" [:span#current-digit "--"]]
-    [:div#digits.well]
-
-    [:h2 "Scoreboard"]
-    [:div#scoreboard.well]]))
+   [:div#game]))
 
 
 (defn game-state []
