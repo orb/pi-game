@@ -2,10 +2,11 @@
   (:require-macros [cljs.core.async.macros :refer [go]]
                    [dommy.macros :refer [sel sel1 node deftemplate]])
   (:require [ajax.core :as ajax]
+            [cljs.core.async :refer [<! chan put! sliding-buffer]]
             [dommy.core :as dommy]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [cljs.core.async :refer [<! chan put! sliding-buffer]]))
+            [sablono.core :as html :refer-macros [html]]))
 
 (enable-console-print!)
 
@@ -34,45 +35,55 @@
 (defn oh-noes [response]
   (.log js/console "something bad happened: " (:status response) " " (:status-text response)))
 
+(defn progress-bar [bar owner]
+  (reify
+    om/IRender
+    (render [_]
+      (let [width-style (str (:percent bar) "%")
+            color-class (str "color" (:color bar))]
+
+        (html [:div.progress
+               [:div.progress-bar.progresss-bar-success {:class (str "color" (:color bar))
+                                                         :style {:width width-style}}]])))))
+
 (defn scorebar-view [player owner]
-  (reify om/IRenderState
-    (render-state [_ state]
+  (reify om/IRender
+    (render [_]
       (let [total-points (om/get-shared owner :total-points)
-            percent (* 100 (/ (:score player) total-points))
-            player-color (:color player)]
-        (dom/div nil
-                 (dom/div #js {:className "div col-2"}
-                          (:name player)
-                          (dom/div #js {:className "span badge pull-right"}
-                                   (:score player)))
-                 (dom/div #js {:className "progress"}
-                          (dom/div #js {:className (str "progress-bar progress-bar-succes color" player-color)
-                                        :style #js {:width (str percent "%")}})))))))
+            percent (* 100 (/ (:score player) total-points))]
+        (html [:div
+               [:div.div.col-2 (:name player)
+                [:div.span.badge.pull-right (:score player)]]
+               (om/build progress-bar {:color (:color player)
+                                       :percent percent})])))))
 
 (defn scoreboard-view [players owner]
   (reify
     om/IRender
     (render [_]
-      (dom/div nil
-               (dom/h2 nil "Scoreboard")
+      (html [:div [:h2 "Scoreboard"]
                (let [total-points (reduce max 1 (map :score players))]
-                 (apply dom/div #js {:className "scoreboard well"}
-                        (om/build-all scorebar-view players {:shared {:total-points total-points}})))))))
+                 [:div.scoreboard.well
+                  (om/build-all scorebar-view players
+                                {:shared {:total-points total-points}})])]))))
 
 
+(defn digit-box [digit color]
+  [:span.digit {:class (str "color" color)} digit])
 
 (defn game-view [app owner]
   (reify
     om/IWillMount
     (will-mount [_]
-      (let [handle-response
+      (let [handle-new-state
             (fn [resp]
               (om/set-state! owner :in-game true)
-              (om/transact! app :game-state (constantly resp)))
+              (om/update! app :game-state resp))
 
             ping-server
             (fn []
-              (ajax/GET "/state" {:handler handle-response :error-handler oh-noes}))]
+              (ajax/GET "/state" {:handler handle-new-state :error-handler oh-noes}))]
+
         (let [timer-id (js/setInterval ping-server 1000)]
           (om/set-state! owner :timer-id timer-id))))
 
@@ -85,24 +96,20 @@
     om/IRenderState
     (render-state [_ {:keys [in-game]}]
       (if in-game
-        (dom/div #js {:className "container"}
-                 (dom/h2 nil
-                         "Looking for digit #"
-                         (dom/span #js {:className "current-digit"}
-                                   (get-in app [:game-state :current])))
-                 (apply dom/div #js {:className "digits well"}
-                        (mapv #(dom/span #js {:className (str "digit color" %2)} %1)
-                              (conj (get-in app [:game-state :digits]) \_)
-                              (conj (get-in app [:game-state :colors]) 0)))
-                 (om/build scoreboard-view (get-in app [:game-state :players])))
-
-        (dom/h2 nil "Waiting...")))))
+        (html [:div.container
+               [:h2 "Looking for digit #"
+                [:span.current-digit (get-in app [:game-state :current])]]
+               [:div.digits.well
+                (map digit-box
+                     (get-in app [:game-state :digits])
+                     (get-in app [:game-state :colors]))
+                (digit-box \_ 0)]
+               (om/build scoreboard-view (get-in app [:game-state :players]))])
+        (html [:h2 "Waiting for game"])))))
 
 (defn init []
-  (.log js/console "Why, hello there!")
   (om/root game-view game-state
-           {:target  (.getElementById js/document "game")
-            :init-state {:monkey "balls"}})
+           {:target  (.getElementById js/document "game")})
 
   (-> (sel1 :body)
       (dommy/listen! :keypress pressed)))
