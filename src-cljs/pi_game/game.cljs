@@ -68,8 +68,11 @@
                                 {:shared {:total-points total-points}})])]))))
 
 
-(defn digit-box [digit color]
-  [:span.digit {:class (str "color" color)} digit])
+(defn digit-box [[digit color] owner]
+  (reify
+    om/IRender
+    (render [_]
+      (html [:span.digit {:class (str "color" color)} digit]))))
 
 (defn game-view [app owner]
   (reify
@@ -97,13 +100,12 @@
     (render-state [_ {:keys [in-game]}]
       (if in-game
         (html [:div.container
-               [:h2 "Looking for digit #"
-                [:span.current-digit (get-in app [:game-state :current])]]
+               [:h2 "Looking for digit #" [:span.current-digit (get-in app [:game-state :current])]]
                [:div.digits.well
-                (map digit-box
-                     (get-in app [:game-state :digits])
-                     (get-in app [:game-state :colors]))
-                (digit-box \_ 0)]
+                (om/build-all digit-box (map vector
+                                             (get-in app [:game-state :digits])
+                                             (get-in app [:game-state :colors])))
+                (om/build digit-box [\_ 0])]
                (om/build scoreboard-view (get-in app [:game-state :players]))])
         (html [:h2 "Waiting for game"])))))
 
