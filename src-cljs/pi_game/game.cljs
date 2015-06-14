@@ -1,14 +1,17 @@
 (ns pi-game.game
-  (:require-macros [cljs.core.async.macros :refer [go]]
-                   [dommy.macros :refer [sel sel1 node deftemplate]])
   (:require [ajax.core :as ajax]
             [cljs.core.async :refer [<! chan put! sliding-buffer]]
             [dommy.core :as dommy]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [sablono.core :as html :refer-macros [html]]))
+            [sablono.core :as html :refer-macros [html]])
+  (:require-macros [dommy.core :refer [sel1]]
+                   [cljs.core.async.macros :refer [go go-loop]]))
 
 (enable-console-print!)
+
+(defn oh-noes [response]
+  (.log js/console "something bad happened: " (:status response) " " (:status-text response)))
 
 (defn pressed [e]
   (let [code (.-keyCode e)]
@@ -17,13 +20,12 @@
      (let [sel-elem (sel1 :#player-name)
             data {:digit (- code 48)
                   :user (dommy/text (aget (.-options sel-elem) (.-selectedIndex sel-elem)))
-                  :position (js/parseInt (dommy/text (sel1 :#current-digit)))}]
+                  :position (js/parseInt (dommy/text (sel1 :.current-digit)))}]
        (ajax/POST "/guess"
-                  {:data data
+                  {:params data
                    :format :edn
                    :handler (fn [& args] (println (- code 48) "PRESSED"))
-                   ;; :error-handler oh-noes
-                   }))
+                   :error-handler oh-noes}))
 
      (== code 126)
      (ajax/POST "/reset"))))
@@ -32,8 +34,6 @@
 
 (defonce game-state (atom {:playing false}))
 
-(defn oh-noes [response]
-  (.log js/console "something bad happened: " (:status response) " " (:status-text response)))
 
 (defn progress-bar [bar owner]
   (reify

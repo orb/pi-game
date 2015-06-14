@@ -6,6 +6,8 @@ pom.xml
 pom.xml.asc
 *.jar
 *.class
-Infinispan-FileCacheStore/
-public/js/app.js
+resources/public/js/app.js
+resources/public/js/out/*
 .lein-*
+.nrepl-*
+figwheel_server.log

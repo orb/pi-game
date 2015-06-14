@@ -17,15 +17,15 @@
   (page/html5 {:lang "en"}
    [:head
     [:title "PI Game"]
-    (page/include-css "/resources/css/bootstrap.min.css")
-    (page/include-css "/resources/css/game.css")
+    (page/include-css "/css/bootstrap.min.css")
+    (page/include-css "/css/game.css")
     (page/include-css "http://fonts.googleapis.com/css?family=Press+Start+2P&subset=latin,greek")]
 
    [:body body]
    (page/include-js "http://fb.me/react-0.9.0.js")
-   (page/include-js "/resources/js/jquery-1.10.2.min.js")
-   (page/include-js "/resources/js/bootstrap.min.js")
-   (page/include-js "/resources/js/app.js")
+   (page/include-js "/js/jquery-1.10.2.min.js")
+   (page/include-js "/js/bootstrap.min.js")
+   (page/include-js "/js/app.js")
    (element/javascript-tag "pi_game.game.init();")))
 
 (defn player-select []
@@ -62,7 +62,7 @@
 
 (defn user-guess [req]
   (let [params (:params req)]
-    (println "! keypress from"  (:user params))
+    (println "! keypress from" (:user params))
     (startup/publish params)
     (edn :ok)))
 
@@ -75,7 +75,7 @@
   (GET "/state" [] (game-state))
   (POST "/guess" [] user-guess)
   (POST "/reset" [] (reset-game))
-  (compojure.route/files "/resources"))
+  (compojure.route/resources "/"))
 
 (def app
   (-> app-routes
